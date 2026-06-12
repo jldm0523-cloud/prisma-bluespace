@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PRISMA Dashboard · Visitas · Bluespace</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --teal:#0D6E6E;--teal-m:#148F8F;--teal-l:#E0F2F1;
+  --blue:#1F3864;--blue-m:#2E75B6;--blue-l:#D6E4F0;
+  --green:#22C55E;--green-l:#DCFCE7;--green-d:#16A34A;
+  --yellow:#F59E0B;--yellow-l:#FEF3C7;--yellow-d:#D97706;
+  --red:#EF4444;--red-l:#FEE2E2;--red-d:#DC2626;
+  --grey:#64748B;--grey-l:#F8FAFC;--border:#E2E8F0;
+  --white:#FFFFFF;--black:#0F1C2E;
+  --shadow:0 1px 3px rgba(15,28,46,.08),0 4px 16px rgba(15,28,46,.06);
+  --shadow-lg:0 8px 32px rgba(15,28,46,.14);
+  --r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#EEF2F7;color:var(--black);min-height:100vh;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--blue) 0%,var(--teal) 100%);z-index:999;display:flex;align-items:center;justify-content:center;padding:24px;}
+#login-screen.hidden{display:none;}
+.login-box{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.login-logo{font-size:32px;font-weight:700;color:var(--blue);letter-spacing:3px;font-family:monospace;text-align:center;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--grey);text-align:center;margin-bottom:32px;}
+.login-field{margin-bottom:18px;}
+.login-label{font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block;}
+.login-input{width:100%;padding:13px 16px;border:2px solid var(--border);border-radius:10px;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--black);transition:.15s;}
+.login-input:focus{outline:none;border-color:var(--teal);}
+.login-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--blue),var(--teal-m));color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:8px;}
+.login-btn:hover{opacity:.95;}
+.login-error{background:var(--red-l);color:var(--red-d);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:16px;display:none;}
+.login-error.show{display:block;}
+
+/* TOPBAR */
+#topbar{background:linear-gradient(135deg,var(--blue) 0%,var(--teal) 100%);padding:0 32px;display:flex;align-items:center;gap:16px;height:64px;box-shadow:0 2px 16px rgba(0,0,0,.22);position:sticky;top:0;z-index:200;}
+.logo{font-size:20px;font-weight:700;color:#fff;letter-spacing:2px;font-family:monospace;}
+.logo-sep{width:1px;height:28px;background:rgba(255,255,255,.25);}
+.logo-sub{font-size:12px;color:rgba(255,255,255,.7);font-style:italic;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:16px;}
+.last-update{font-size:11px;color:rgba(255,255,255,.5);font-family:monospace;}
+.btn-refresh{padding:7px 16px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:.15s;}
+.btn-refresh:hover{background:rgba(255,255,255,.25);}
+
+#main{padding:28px 32px;max-width:1600px;margin:0 auto;}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px;}
+.kpi{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);border-top:4px solid var(--border);}
+.kpi.k-blue{border-top-color:var(--blue-m);}
+.kpi.k-green{border-top-color:var(--green);}
+.kpi.k-yellow{border-top-color:var(--yellow);}
+.kpi.k-red{border-top-color:var(--red);}
+.kpi.k-teal{border-top-color:var(--teal);}
+.kpi.k-purple{border-top-color:#8B5CF6;}
+.kpi-num{font-size:32px;font-weight:700;font-family:monospace;line-height:1;}
+.kpi.k-green .kpi-num{color:var(--green-d);}
+.kpi.k-yellow .kpi-num{color:var(--yellow-d);}
+.kpi.k-red .kpi-num{color:var(--red-d);}
+.kpi.k-blue .kpi-num{color:var(--blue-m);}
+.kpi.k-teal .kpi-num{color:var(--teal);}
+.kpi.k-purple .kpi-num{color:#7C3AED;}
+.kpi-label{font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+
+/* FILTER */
+.filter-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.filter-bar select,.filter-bar input[type=text]{padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--black);background:#fff;-webkit-appearance:none;appearance:none;}
+.filter-bar select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748B' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+.filter-count{font-size:12px;color:var(--grey);margin-left:auto;font-family:monospace;}
+
+/* LAYOUT */
+.main-grid{display:grid;grid-template-columns:1fr 420px;gap:20px;}
+
+/* CARDS */
+.card{background:#fff;border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow);margin-bottom:18px;}
+.card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--border);}
+.card-hdr h2{font-size:14px;font-weight:700;color:var(--blue);}
+.hdr-icon{font-size:18px;}
+
+/* VISIT CARDS */
+.visit-list{display:flex;flex-direction:column;gap:10px;}
+.visit-card{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--border);cursor:pointer;transition:.2s;}
+.visit-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px);}
+.visit-card.sel{outline:2px solid var(--teal);border-left-color:var(--teal)!important;}
+.vc-green{border-left-color:var(--green)!important;}
+.vc-yellow{border-left-color:var(--yellow)!important;}
+.vc-red{border-left-color:var(--red)!important;}
+.vc-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+.vc-left{flex:1;}
+.vc-centro{font-size:14px;font-weight:700;color:var(--black);}
+.vc-meta{font-size:11px;color:var(--grey);margin-top:2px;font-family:monospace;}
+.vc-score{text-align:right;flex-shrink:0;}
+.vc-score-num{font-size:22px;font-weight:700;font-family:monospace;}
+.vc-score-num.green{color:var(--green-d);}
+.vc-score-num.yellow{color:var(--yellow-d);}
+.vc-score-num.red{color:var(--red-d);}
+.vc-score-label{font-size:9px;color:var(--grey);text-transform:uppercase;}
+.vc-blocks{display:flex;flex-wrap:wrap;gap:4px;}
+.block-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+.pill-green{background:var(--green-l);color:var(--green-d);}
+.pill-yellow{background:var(--yellow-l);color:var(--yellow-d);}
+.pill-red{background:var(--red-l);color:var(--red-d);}
+.pill-grey{background:#F1F5F9;color:var(--grey);}
+.auto-red-pill{background:#7C1D1D;color:#fff;font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;}
+
+/* BADGES */
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:monospace;}
+.badge-green{background:var(--green-l);color:var(--green-d);}
+.badge-yellow{background:var(--yellow-l);color:var(--yellow-d);}
+.badge-red{background:var(--red-l);color:var(--red-d);}
+
+/* DETAIL PANEL */
+#detail-panel{background:#fff;border-radius:var(--r);box-shadow:var(--shadow-lg);position:sticky;top:80px;max-height:calc(100vh - 100px);overflow-y:auto;}
+.detail-header{background:linear-gradient(135deg,var(--blue),var(--teal-m));padding:20px 22px;border-radius:var(--r) var(--r) 0 0;}
+.detail-centro{font-size:16px;font-weight:700;color:#fff;}
+.detail-meta{font-size:11px;color:rgba(255,255,255,.7);margin-top:3px;font-family:monospace;}
+.detail-score{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.2);}
+.detail-score-num{font-size:36px;font-weight:700;font-family:monospace;color:#fff;line-height:1;}
+.detail-score-info{flex:1;}
+.detail-score-label{font-size:11px;color:rgba(255,255,255,.6);}
+.detail-body{padding:18px 20px;}
+.det-section{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.det-section:last-child{border-bottom:none;margin-bottom:0;}
+.det-sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.det-sec-icon{font-size:16px;}
+.det-sec-title{font-size:13px;font-weight:700;color:var(--black);}
+.det-sec-weight{font-size:10px;color:var(--grey);margin-left:2px;}
+.det-items{display:flex;flex-direction:column;gap:3px;margin-bottom:6px;}
+.det-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--grey);}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-green{background:var(--green);}
+.dot-yellow{background:var(--yellow);}
+.dot-red{background:var(--red);}
+.dot-grey{background:#CBD5E1;}
+.det-notes{font-size:11px;color:var(--grey);font-style:italic;background:#F8FAFC;padding:8px 10px;border-radius:6px;white-space:pre-line;margin-top:6px;}
+.det-acciones{font-size:11px;color:var(--black);background:var(--teal-l);padding:10px 12px;border-radius:8px;white-space:pre-line;border-left:3px solid var(--teal);}
+.det-recomend{font-size:11px;color:var(--black);background:var(--yellow-l);padding:10px 12px;border-radius:8px;white-space:pre-line;border-left:3px solid var(--yellow);}
+
+/* ACTION TABLE */
+.action-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px;}
+.action-table th{background:var(--blue);color:#fff;padding:6px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+.action-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.action-table tr:hover td{background:#F8FAFC;}
+.status-pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.sp-pending{background:#F1F5F9;color:var(--grey);}
+.sp-progress{background:var(--blue-l);color:var(--blue-m);}
+.sp-done{background:var(--green-l);color:var(--green-d);}
+.sp-escalated{background:var(--red-l);color:var(--red-d);}
+
+/* PHOTOS */
+.photos-grid{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.photo-thumb{width:68px;height:68px;border-radius:8px;object-fit:cover;border:2px solid var(--border);cursor:pointer;transition:.15s;}
+.photo-thumb:hover{transform:scale(1.06);border-color:var(--teal);}
+
+/* CHARTS ROW */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:50px 20px;color:var(--grey);}
+.empty-icon{font-size:44px;margin-bottom:10px;}
+.empty-title{font-size:14px;font-weight:600;color:var(--black);margin-bottom:6px;}
+.empty-sub{font-size:12px;}
+
+/* LOADING */
+.loading{text-align:center;padding:40px;color:var(--grey);}
+.spin{display:inline-block;width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* LIGHTBOX */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;align-items:center;justify-content:center;}
+#lightbox.show{display:flex;}
+#lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;}
+#lb-close{position:absolute;top:20px;right:28px;color:#fff;font-size:36px;cursor:pointer;font-weight:300;}
+
+/* AUTO RED ALERT */
+.auto-red-banner{background:var(--red-l);border:2px solid var(--red);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;font-weight:700;color:var(--red-d);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">PRISMA</div>
+    <div class="login-sub">Dashboard de Visitas · Bluespace</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-field">
+      <label class="login-label">Usuario</label>
+      <input class="login-input" type="text" id="login-user" placeholder="Tu usuario" autocomplete="username"/>
+    </div>
+    <div class="login-field">
+      <label class="login-label">Contraseña</label>
+      <input class="login-input" type="password" id="login-pass" placeholder="Tu contraseña" autocomplete="current-password"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Entrar al dashboard →</button>
+  </div>
+</div>
+
+<div id="topbar">
+  <div class="logo">PRISMA</div>
+  <div class="logo-sep"></div>
+  <div class="logo-sub">Dashboard de Visitas · Bluespace</div>
+  <div class="topbar-right">
+    <span class="last-update" id="lastUpdate">Cargando...</span>
+    <button class="btn-refresh" onclick="loadVisits()">↻ Actualizar</button>
+  </div>
+</div>
+
+<div id="main">
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi k-blue"><div class="kpi-num" id="kpi-total">—</div><div class="kpi-label">Visitas registradas</div></div>
+    <div class="kpi k-teal"><div class="kpi-num" id="kpi-centros">—</div><div class="kpi-label">Centros visitados</div></div>
+    <div class="kpi k-green"><div class="kpi-num" id="kpi-green">—</div><div class="kpi-label">Centros correctos</div></div>
+    <div class="kpi k-yellow"><div class="kpi-num" id="kpi-yellow">—</div><div class="kpi-label">Requieren mejoras</div></div>
+    <div class="kpi k-red"><div class="kpi-num" id="kpi-red">—</div><div class="kpi-label">Atención urgente</div></div>
+    <div class="kpi k-purple"><div class="kpi-num" id="kpi-score">—</div><div class="kpi-label">Score promedio red</div></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <select id="filt-estado" onchange="renderList()">
+      <option value="">Todos los estados</option>
+      <option value="green">🟢 Correctos</option>
+      <option value="yellow">🟡 Revisar</option>
+      <option value="red">🔴 Atención urgente</option>
+    </select>
+    <select id="filt-pais" onchange="renderList()">
+      <option value="">Todos los países</option>
+      <option>🇪🇸 España</option>
+      <option>🇵🇹 Portugal</option>
+      <option>🇫🇷 Francia</option>
+      <option>🇮🇹 Italia</option>
+    </select>
+    <select id="filt-tipo" onchange="renderList()">
+      <option value="">Todos los tipos</option>
+      <option>Visita programada</option>
+      <option>Visita sin previo aviso</option>
+      <option>Visita de seguimiento</option>
+      <option>Visita post-incidente</option>
+    </select>
+    <span class="filter-count" id="filtCount"></span>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="charts-row">
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-hdr"><span class="hdr-icon">📊</span><h2>Estado por bloque de seguridad</h2></div>
+      <canvas id="blockChart" style="max-height:200px;"></canvas>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="card-hdr"><span class="hdr-icon">🎯</span><h2>Distribución de calificaciones</h2></div>
+      <canvas id="scoreChart" style="max-height:200px;"></canvas>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px 0;">
+          <div class="card-hdr"><span class="hdr-icon">📋</span><h2>Registro de visitas</h2></div>
+        </div>
+        <div id="visitList" style="padding:0 14px 14px;">
+          <div class="loading"><div class="spin"></div><br/>Conectando con Google Sheets...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DETAIL PANEL -->
+    <div>
+      <div id="detail-panel">
+        <div id="detail-content">
+          <div style="padding:48px 22px;text-align:center;color:var(--grey);">
+            <div style="font-size:44px;margin-bottom:12px;">👈</div>
+            <div style="font-size:14px;font-weight:600;color:var(--black);">Selecciona una visita</div>
+            <div style="font-size:12px;margin-top:6px;">para ver el reporte completo con score, plan de acción y fotos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="lightbox" onclick="closeLb()">
+  <span id="lb-close">×</span>
+  <img id="lb-img" src="" alt=""/>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwf3e1AA3uWGNcjQIQBnkBv8R6azbZwacnYORfVIE0XFiHOn2Uxf74TmhYpKfeGdxTVow/exec';
+
+// ─── AUTH ────────────────────────────────────────────────────
+let authToken = localStorage.getItem('prisma_token') || '';
+
+async function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!user || !pass) return;
+  document.getElementById('login-error').classList.remove('show');
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({action:'login', username: user, password: pass})
+    });
+    const data = await res.json();
+    if (data.status === 'ok') {
+      authToken = data.token;
+      localStorage.setItem('prisma_token', authToken);
+      localStorage.setItem('prisma_user', data.username);
+      localStorage.setItem('prisma_rol', data.rol);
+      document.getElementById('login-screen').classList.add('hidden');
+      loadVisits();
+    } else {
+      document.getElementById('login-error').textContent = data.message || 'Error de acceso';
+      document.getElementById('login-error').classList.add('show');
+    }
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Sin conexión';
+    document.getElementById('login-error').classList.add('show');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const p = document.getElementById('login-pass');
+  if(p) p.addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  // Check existing session
+  if (authToken) {
+    fetch(SCRIPT_URL + '?action=verify_session&token=' + encodeURIComponent(authToken))
+      .then(r => r.json())
+      .then(d => {
+        if (d.status === 'ok') {
+          document.getElementById('login-screen').classList.add('hidden');
+          loadVisits();
+        } else {
+          localStorage.removeItem('prisma_token');
+        }
+      }).catch(() => {
+        if (authToken) {
+          document.getElementById('login-screen').classList.add('hidden');
+          loadVisits();
+        }
+      });
+  }
+});
+
+const BLOCKS = [
+  {label:'Botón de pánico',      icon:'🚨', weight:0.13, keys:['s1_equipo','s1_fijos','s1_portátiles','s1_demo','s1_estado','s1_proto']},
+  {label:'Control de acceso',    icon:'🚪', weight:0.18, keys:['s2_acceso','s2_cierre','s2_segundo','s2_sensores','s2_barda'], critical:true},
+  {label:'Zonificación',         icon:'🗺️', weight:0.20, keys:['s3_zonas','s3_pb','s3_ascen','s3_qr_cabina','s3_parking','s3_portones','s3_ilum'], critical:true},
+  {label:'CCTV',                 icon:'📹', weight:0.15, keys:['s4_op','s4_estado','s4_cob','s4_ia','s4_tecnico','s4_rgpd']},
+  {label:'Emergencias',          icon:'🔥', weight:0.12, keys:['s5_senial','s5_apertura','s5_rutas','s5_alerta']},
+  {label:'Alarmas',              icon:'🔔', weight:0.12, keys:['s6_op','s6_manejo','s6_central','s6_falsas']},
+  {label:'Equipo',               icon:'💬', weight:0.10, keys:['s7_seg','s7_sospech','s7_proto']},
+];
+
+const KEY_LABELS = {
+  s1_equipo:'Todo el equipo conoce el botón',s1_fijos:'Botones fijos instalados',s1_portátiles:'Mandos portátiles asignados',s1_demo:'Equipo demostró activación',s1_estado:'Dispositivos operativos',s1_proto:'Conocen protocolo de respuesta',
+  s2_acceso:'Doble factor QR+código operativo',s2_cierre:'Puertas cierran correctamente',s2_segundo:'Segundo filtro de acceso existe',s2_sensores:'Sensores libres de obstáculos',s2_barda:'Perímetro exterior en buen estado',
+  s3_zonas:'Plantas zonificadas por QR',s3_pb:'Planta baja con control de acceso',s3_ascen:'Ascensores restringidos por planta',s3_qr_cabina:'Teclado QR dentro de cabina',s3_parking:'Parking zonificado',s3_portones:'Portones carga/descarga controlados',s3_ilum:'Iluminación adecuada',
+  s4_op:'Sistema CCTV operativo',s4_estado:'Estado físico de cámaras',s4_cob:'Cobertura ≥70% del recorrido',s4_ia:'Analítica IA activa',s4_tecnico:'Cuarto técnico restringido',s4_rgpd:'Señalización RGPD conforme',
+  s5_senial:'Salidas emergencia señalizadas',s5_apertura:'Puertas emergencia abren desde dentro',s5_rutas:'Rutas evacuación despejadas',s5_alerta:'Alerta ante apertura emergencia',
+  s6_op:'Alarma operativa',s6_manejo:'Equipo maneja alarma',s6_central:'Conectada central 24/7',s6_falsas:'Sin falsas alarmas frecuentes',
+  s7_seg:'Equipo se siente seguro',s7_sospech:'Sin situaciones sospechosas',s7_proto:'Equipo conoce protocolo incidentes',
+};
+
+let allVisits = [];
+let blockChartInst = null;
+let scoreChartInst = null;
+
+function getBlockColor(sv, keys) {
+  const vals = keys.map(k=>sv[k]).filter(Boolean);
+  if(!vals.length) return 'grey';
+  if(vals.includes('red')) return 'red';
+  if(vals.includes('yellow')) return 'yellow';
+  return 'green';
+}
+
+function getOverall(v) {
+  if(v.scoreColor) return v.scoreColor;
+  const sv = v.semValues||{};
+  const critAcceso = ['s2_acceso','s2_cierre','s2_segundo'].some(k=>sv[k]==='red');
+  const critZona = ['s3_zonas','s3_pb','s3_ascen','s3_qr_cabina'].some(k=>sv[k]==='red');
+  if(critAcceso||critZona) return 'red';
+  const all = Object.values(sv);
+  if(all.includes('red')) return 'red';
+  if(all.includes('yellow')) return 'yellow';
+  if(all.length) return 'green';
+  return 'grey';
+}
+
+function calcScore(v) {
+  if(v.score) return parseFloat(v.score);
+  const sv = v.semValues||{};
+  const colorVal={green:3,yellow:2,red:1};
+  let ws=0, tw=0;
+  BLOCKS.forEach(b=>{
+    const vals=b.keys.map(k=>sv[k]).filter(Boolean);
+    if(!vals.length) return;
+    const bs=vals.reduce((s,c)=>s+(colorVal[c]||0),0)/vals.length;
+    ws+=bs*b.weight; tw+=b.weight;
+  });
+  return tw ? parseFloat((ws/tw).toFixed(2)) : 0;
+}
+
+function badge(c) {
+  if(c==='green') return '<span class="status-badge badge-green">🟢 Correcto</span>';
+  if(c==='yellow') return '<span class="status-badge badge-yellow">🟡 Revisar</span>';
+  if(c==='red') return '<span class="status-badge badge-red">🔴 Atención</span>';
+  return '<span class="status-badge" style="background:#F1F5F9;color:#64748B;">⚪ Pendiente</span>';
+}
+
+function pillCls(c){return c==='green'?'pill-green':c==='yellow'?'pill-yellow':c==='red'?'pill-red':'pill-grey';}
+function dotCls(c){return c==='green'?'dot-green':c==='yellow'?'dot-yellow':c==='red'?'dot-red':'dot-grey';}
+function statusPill(s){
+  const m={'Pendiente':'sp-pending','En proceso':'sp-progress','Completada':'sp-done','Escalada':'sp-escalated'};
+  return `<span class="status-pill ${m[s]||'sp-pending'}">${s}</span>`;
+}
+
+async function loadVisits() {
+  document.getElementById('lastUpdate').textContent = 'Actualizando...';
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=get_visits&token=' + encodeURIComponent(authToken) + '&t=' + Date.now());
+    const data = await res.json();
+    if (data.status === 'ok') {
+      allVisits = data.visits||[];
+      updateKPIs();
+      renderList();
+      renderCharts();
+      document.getElementById('lastUpdate').textContent = 'Actualizado: '+new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    }
+  } catch(e) {
+    document.getElementById('visitList').innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><div class="empty-title">Error de conexión</div><div class="empty-sub">Verifica tu conexión a internet</div></div>`;
+    document.getElementById('lastUpdate').textContent = 'Error de conexión';
+  }
+}
+
+function updateKPIs() {
+  let g=0,y=0,r=0,scoreSum=0,scoreCount=0;
+  const centros = new Set();
+  allVisits.forEach(v=>{
+    const centro = v.centro||v['Centro']||'';
+    centros.add(centro);
+    const c = getOverall(v);
+    if(c==='green')g++; else if(c==='yellow')y++; else if(c==='red')r++;
+    const sc = calcScore(v);
+    if(sc>0){scoreSum+=sc;scoreCount++;}
+  });
+  document.getElementById('kpi-total').textContent = allVisits.length;
+  document.getElementById('kpi-centros').textContent = centros.size;
+  document.getElementById('kpi-green').textContent = g;
+  document.getElementById('kpi-yellow').textContent = y;
+  document.getElementById('kpi-red').textContent = r;
+  document.getElementById('kpi-score').textContent = scoreCount ? (scoreSum/scoreCount).toFixed(1) : '—';
+}
+
+function getFiltered() {
+  const estado = document.getElementById('filt-estado').value;
+  const pais = document.getElementById('filt-pais').value;
+  const tipo = document.getElementById('filt-tipo').value;
+  return allVisits.filter(v=>{
+    const centro = v.centro||v['Centro']||'';
+    const tipoV = v.tipo||v['Tipo']||'';
+    if(estado && getOverall(v)!==estado) return false;
+    if(pais && !centro.includes(pais)) return false;
+    if(tipo && tipoV!==tipo) return false;
+    return true;
+  });
+}
+
+function renderList() {
+  const filtered = getFiltered();
+  document.getElementById('filtCount').textContent = filtered.length+' visita'+(filtered.length!==1?'s':'');
+  const el = document.getElementById('visitList');
+  if(!filtered.length){
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">${allVisits.length?'🔍':'📱'}</div><div class="empty-title">${allVisits.length?'Sin resultados con esos filtros':'Aún no hay visitas registradas'}</div><div class="empty-sub">${allVisits.length?'Cambia los filtros':'Usa la app móvil para registrar la primera visita'}</div></div>`;
+    return;
+  }
+  el.innerHTML='<div class="visit-list">'+filtered.map((v,i)=>{
+    const sv=v.semValues||{};
+    const overall=getOverall(v);
+    const sc=calcScore(v);
+    const centro=v.centro||v['Centro']||'Centro sin especificar';
+    const fecha=v.fecha||v['Fecha']||'';
+    const manager=v.manager||v['Manager']||'—';
+    const tipo=v.tipo||v['Tipo']||'';
+    const autoRed=v.autoRed||false;
+    const dateStr=fecha?new Date(fecha).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}):'—';
+    const pills=BLOCKS.map(b=>{
+      const c=getBlockColor(sv,b.keys);
+      return `<span class="block-pill ${pillCls(c)}">${b.icon} ${b.label.split(' ')[0]}</span>`;
+    }).join('');
+    return `<div class="visit-card vc-${overall}" onclick="selectVisit(${i})" id="vc-${i}">
+      <div class="vc-top">
+        <div class="vc-left">
+          <div class="vc-centro">${centro}</div>
+          <div class="vc-meta">${dateStr} · ${tipo} · Manager: ${manager}</div>
+        </div>
+        <div class="vc-score">
+          <div class="vc-score-num ${overall}">${sc}</div>
+          <div class="vc-score-label">score</div>
+        </div>
+      </div>
+      <div class="vc-blocks">${pills}${autoRed?'<span class="auto-red-pill">⚠️ Auto-rojo</span>':''}</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+function selectVisit(idx) {
+  document.querySelectorAll('.visit-card').forEach(c=>c.classList.remove('sel'));
+  const el=document.getElementById('vc-'+idx);
+  if(el) el.classList.add('sel');
+  const v=getFiltered()[idx];
+  if(!v) return;
+  renderDetail(v);
+}
+
+function renderDetail(v) {
+  const sv=v.semValues||{};
+  const notas=v.notas||{};
+  const actions=v.actions||[];
+  const overall=getOverall(v);
+  const sc=calcScore(v);
+  const centro=v.centro||v['Centro']||'Centro';
+  const fecha=v.fecha||v['Fecha']||'';
+  const manager=v.manager||v['Manager']||'—';
+  const acomp=v.acompanante||v['Acompañante']||'—';
+  const tipo=v.tipo||v['Tipo']||'';
+  const autoRed=v.autoRed||false;
+  const dateStr=fecha?new Date(fecha).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'—';
+
+  let scoreColor='#22C55E';
+  if(overall==='yellow') scoreColor='#F59E0B';
+  if(overall==='red') scoreColor='#EF4444';
+
+  // Blocks HTML
+  let blocksHtml='';
+  BLOCKS.forEach((b,i)=>{
+    const c=getBlockColor(sv,b.keys);
+    const noteKeys=['s1','s2','s3','s4','s5','s6','s7'];
+    const note=notas[noteKeys[i]]||'';
+    const photoKey='prev_s'+(i+1);
+    const photos=v.photos?(v.photos[photoKey]||[]):[];
+    let itemsHtml=b.keys.map(k=>{
+      const val=sv[k]||'';
+      return `<div class="det-item"><span class="dot ${dotCls(val)}"></span>${KEY_LABELS[k]||k}</div>`;
+    }).join('');
+    let photosHtml=photos.length?`<div class="photos-grid">${photos.map(src=>`<img src="${src}" class="photo-thumb" onclick="openLb('${src}')"/>`).join('')}</div>`:'';
+    blocksHtml+=`<div class="det-section">
+      <div class="det-sec-hdr">
+        <span class="det-sec-icon">${b.icon}</span>
+        <span class="det-sec-title">${b.label}</span>
+        <span class="det-sec-weight">(${Math.round(b.weight*100)}%)</span>
+        ${b.critical?'<span style="font-size:9px;background:#7C1D1D;color:#fff;padding:2px 6px;border-radius:10px;font-weight:700;margin-left:4px;">CRÍTICO</span>':''}
+        <span style="margin-left:auto;">${badge(c)}</span>
+      </div>
+      <div class="det-items">${itemsHtml}</div>
+      ${note?`<div class="det-notes">${note}</div>`:''}
+      ${photosHtml}
+    </div>`;
+  });
+
+  // Actions table
+  let actionsHtml='';
+  if(actions.length){
+    actionsHtml=`<div class="det-section">
+      <div class="det-sec-hdr"><span class="det-sec-icon">📌</span><span class="det-sec-title">Plan de acción</span></div>
+      <table class="action-table">
+        <thead><tr><th>Acción</th><th>Responsable</th><th>Fecha límite</th><th>Estatus</th></tr></thead>
+        <tbody>${actions.map(a=>`<tr>
+          <td style="max-width:180px;">${a.title}</td>
+          <td>${a.responsable||'—'}</td>
+          <td style="font-family:monospace;">${a.fechaLimite||'—'}</td>
+          <td>${statusPill(a.estatus)}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  const rec=notas.recomendaciones||'';
+  const res=notas.resumen||'';
+
+  document.getElementById('detail-content').innerHTML=`
+    <div class="detail-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+        <div class="detail-centro">${centro}</div>${badge(overall)}
+      </div>
+      <div class="detail-meta">${dateStr}</div>
+      <div class="detail-meta">Manager: ${manager} · ${acomp} · ${tipo}</div>
+      <div class="detail-score">
+        <div class="detail-score-num" style="color:${scoreColor};">${sc}</div>
+        <div class="detail-score-info">
+          <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;">Puntuación ponderada</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:2px;">${v.scoreLabel||''}</div>
+          ${autoRed?'<div style="font-size:10px;color:#FCA5A5;margin-top:2px;">⚠️ Rojo automático por hallazgo crítico</div>':''}
+        </div>
+      </div>
+    </div>
+    <div class="detail-body">
+      ${autoRed?'<div class="auto-red-banner">⚠️ Este centro tiene hallazgos críticos en Zonificación o Control de Acceso que generan calificación roja automática.</div>':''}
+      ${blocksHtml}
+      ${actionsHtml}
+      ${res?`<div class="det-section"><div class="det-sec-hdr"><span class="det-sec-icon">📝</span><span class="det-sec-title">Resumen ejecutivo</span></div><div class="det-notes">${res}</div></div>`:''}
+      ${rec?`<div class="det-section"><div class="det-sec-hdr"><span class="det-sec-icon">📤</span><span class="det-sec-title">Para dirección / regional</span></div><div class="det-recomend">${rec}</div></div>`:''}
+    </div>`;
+}
+
+function renderCharts() {
+  // Block chart
+  const ctx1=document.getElementById('blockChart').getContext('2d');
+  const gs=[],ys=[],rs=[];
+  BLOCKS.forEach(b=>{
+    let g=0,y=0,r=0;
+    allVisits.forEach(v=>{
+      const c=getBlockColor(v.semValues||{},b.keys);
+      if(c==='green')g++; else if(c==='yellow')y++; else if(c==='red')r++;
+    });
+    gs.push(g);ys.push(y);rs.push(r);
+  });
+  if(blockChartInst) blockChartInst.destroy();
+  blockChartInst=new Chart(ctx1,{type:'bar',data:{
+    labels:BLOCKS.map(b=>b.icon+' '+b.label.split(' ')[0]),
+    datasets:[
+      {label:'Correcto',data:gs,backgroundColor:'#DCFCE7',borderColor:'#16A34A',borderWidth:2,borderRadius:4},
+      {label:'Revisar',data:ys,backgroundColor:'#FEF3C7',borderColor:'#D97706',borderWidth:2,borderRadius:4},
+      {label:'Atención',data:rs,backgroundColor:'#FEE2E2',borderColor:'#DC2626',borderWidth:2,borderRadius:4},
+    ]
+  },options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:10},usePointStyle:true}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{family:'DM Mono',size:9}}},y:{stacked:true,grid:{color:'#F1F5F9'},ticks:{font:{family:'DM Mono',size:9},stepSize:1}}}}});
+
+  // Score distribution doughnut
+  const ctx2=document.getElementById('scoreChart').getContext('2d');
+  let sg=0,sy=0,sr=0;
+  allVisits.forEach(v=>{
+    const c=getOverall(v);
+    if(c==='green')sg++; else if(c==='yellow')sy++; else if(c==='red')sr++;
+  });
+  if(scoreChartInst) scoreChartInst.destroy();
+  scoreChartInst=new Chart(ctx2,{type:'doughnut',data:{
+    labels:['🟢 Correctos','🟡 Revisar','🔴 Atención'],
+    datasets:[{data:[sg,sy,sr],backgroundColor:['#DCFCE7','#FEF3C7','#FEE2E2'],borderColor:['#16A34A','#D97706','#DC2626'],borderWidth:2}]
+  },options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},usePointStyle:true}}},cutout:'65%'}});
+}
+
+function openLb(src){document.getElementById('lb-img').src=src;document.getElementById('lightbox').classList.add('show');}
+function closeLb(){document.getElementById('lightbox').classList.remove('show');}
+
+// Auto-refresh every 30s
+setInterval(()=>{ if(authToken) loadVisits(); }, 30000);
+</script>
+</body>
+</html>
