@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PRISMA Dashboard · Bluespace</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --teal:#0D6E6E;--teal-m:#148F8F;--teal-l:#E0F2F1;
+  --blue:#1F3864;--blue-m:#2E75B6;--blue-l:#D6E4F0;
+  --green:#22C55E;--green-l:#DCFCE7;--green-d:#16A34A;
+  --yellow:#F59E0B;--yellow-l:#FEF3C7;--yellow-d:#D97706;
+  --red:#EF4444;--red-l:#FEE2E2;--red-d:#DC2626;
+  --grey:#64748B;--grey-l:#F8FAFC;--border:#E2E8F0;
+  --black:#0F1C2E;--shadow:0 1px 3px rgba(15,28,46,.08),0 4px 16px rgba(15,28,46,.06);
+  --shadow-lg:0 8px 32px rgba(15,28,46,.14);--r:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:#EEF2F7;color:var(--black);min-height:100vh;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--blue),var(--teal));z-index:999;display:flex;align-items:center;justify-content:center;padding:24px;}
+#login-screen.hidden{display:none;}
+.login-box{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.login-logo{font-size:32px;font-weight:700;color:var(--blue);letter-spacing:3px;font-family:monospace;text-align:center;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--grey);text-align:center;margin-bottom:28px;}
+.login-field{margin-bottom:16px;}
+.login-label{font-size:11px;font-weight:700;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block;}
+.login-input{width:100%;padding:13px 16px;border:2px solid var(--border);border-radius:10px;font-size:15px;font-family:'DM Sans',sans-serif;color:var(--black);transition:.15s;}
+.login-input:focus{outline:none;border-color:var(--teal);}
+.login-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--blue),var(--teal-m));color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:8px;}
+.login-error{background:var(--red-l);color:var(--red-d);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:14px;display:none;}
+.login-error.show{display:block;}
+
+/* TOPBAR */
+#topbar{background:linear-gradient(135deg,var(--blue),var(--teal));padding:0 32px;display:flex;align-items:center;gap:16px;height:60px;box-shadow:0 2px 16px rgba(0,0,0,.22);position:sticky;top:0;z-index:200;}
+.logo{font-size:20px;font-weight:700;color:#fff;letter-spacing:2px;font-family:monospace;}
+.logo-sep{width:1px;height:28px;background:rgba(255,255,255,.25);}
+.logo-sub{font-size:12px;color:rgba(255,255,255,.7);font-style:italic;}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.last-update{font-size:11px;color:rgba(255,255,255,.5);font-family:monospace;}
+.btn-top{padding:7px 14px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-top:hover{background:rgba(255,255,255,.25);}
+.btn-top.red{background:rgba(239,68,68,.3);border-color:rgba(239,68,68,.5);}
+
+#main{padding:24px 32px;max-width:1600px;margin:0 auto;}
+
+/* KPIs */
+.kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:20px;}
+.kpi{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);border-top:4px solid var(--border);}
+.kpi.k-blue{border-top-color:var(--blue-m);} .kpi.k-teal{border-top-color:var(--teal);}
+.kpi.k-green{border-top-color:var(--green);} .kpi.k-yellow{border-top-color:var(--yellow);}
+.kpi.k-red{border-top-color:var(--red);} .kpi.k-purple{border-top-color:#8B5CF6;}
+.kpi-num{font-size:32px;font-weight:700;font-family:monospace;line-height:1;}
+.kpi.k-green .kpi-num{color:var(--green-d);} .kpi.k-yellow .kpi-num{color:var(--yellow-d);}
+.kpi.k-red .kpi-num{color:var(--red-d);} .kpi.k-blue .kpi-num{color:var(--blue-m);}
+.kpi.k-teal .kpi-num{color:var(--teal);} .kpi.k-purple .kpi-num{color:#7C3AED;}
+.kpi-label{font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+
+/* FILTERS */
+.filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.filter-bar select{padding:8px 32px 8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--black);background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748B' stroke-width='1.5' fill='none'/%3E%3C/svg%3E") no-repeat right 10px center;-webkit-appearance:none;appearance:none;}
+.btn-clear{padding:8px 14px;background:#fff;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;color:var(--grey);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.filter-count{font-size:12px;color:var(--grey);margin-left:auto;font-family:monospace;}
+
+/* CHARTS */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.card{background:#fff;border-radius:var(--r);padding:20px 22px;box-shadow:var(--shadow);}
+.card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid var(--border);}
+.card-hdr h2{font-size:14px;font-weight:700;color:var(--blue);}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1fr 420px;gap:18px;}
+
+/* VISIT LIST */
+.visit-list{display:flex;flex-direction:column;gap:8px;}
+.visit-card{background:#fff;border-radius:var(--r);padding:14px 18px;box-shadow:var(--shadow);border-left:4px solid var(--border);cursor:pointer;transition:.2s;}
+.visit-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px);}
+.visit-card.sel{outline:2px solid var(--teal);border-left-color:var(--teal)!important;}
+.vc-green{border-left-color:var(--green)!important;} .vc-yellow{border-left-color:var(--yellow)!important;} .vc-red{border-left-color:var(--red)!important;}
+.vc-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.vc-centro{font-size:14px;font-weight:700;color:var(--black);}
+.vc-meta{font-size:11px;color:var(--grey);margin-top:2px;font-family:monospace;}
+.vc-score-num{font-size:22px;font-weight:700;font-family:monospace;text-align:right;}
+.vc-score-num.green{color:var(--green-d);} .vc-score-num.yellow{color:var(--yellow-d);} .vc-score-num.red{color:var(--red-d);}
+.vc-score-label{font-size:9px;color:var(--grey);text-transform:uppercase;text-align:right;}
+.vc-blocks{display:flex;flex-wrap:wrap;gap:4px;}
+.block-pill{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+.pill-green{background:var(--green-l);color:var(--green-d);} .pill-yellow{background:var(--yellow-l);color:var(--yellow-d);}
+.pill-red{background:var(--red-l);color:var(--red-d);} .pill-grey{background:#F1F5F9;color:var(--grey);}
+.auto-red-pill{background:#7C1D1D;color:#fff;font-size:9px;padding:2px 7px;border-radius:20px;font-weight:700;}
+
+/* BADGES */
+.sbadge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:monospace;}
+.sbadge-green{background:var(--green-l);color:var(--green-d);} .sbadge-yellow{background:var(--yellow-l);color:var(--yellow-d);}
+.sbadge-red{background:var(--red-l);color:var(--red-d);}
+
+/* DETAIL PANEL */
+#detail-panel{background:#fff;border-radius:var(--r);box-shadow:var(--shadow-lg);position:sticky;top:72px;max-height:calc(100vh - 90px);overflow-y:auto;display:flex;flex-direction:column;}
+.detail-header{background:linear-gradient(135deg,var(--blue),var(--teal-m));padding:18px 20px;border-radius:var(--r) var(--r) 0 0;flex-shrink:0;}
+.detail-centro{font-size:16px;font-weight:700;color:#fff;}
+.detail-meta{font-size:11px;color:rgba(255,255,255,.7);margin-top:3px;font-family:monospace;}
+.detail-score-row{display:flex;align-items:center;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.2);}
+.detail-score-num{font-size:38px;font-weight:700;font-family:monospace;line-height:1;}
+.detail-body{padding:16px 18px;flex:1;overflow-y:auto;}
+.det-section{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.det-section:last-child{border-bottom:none;margin-bottom:0;}
+.det-sec-hdr{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.det-sec-title{font-size:13px;font-weight:700;color:var(--black);}
+.det-sec-weight{font-size:10px;color:var(--grey);}
+.det-items{display:flex;flex-direction:column;gap:3px;margin-bottom:6px;}
+.det-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--grey);}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-green{background:var(--green);} .dot-yellow{background:var(--yellow);} .dot-red{background:var(--red);} .dot-grey{background:#CBD5E1;}
+.det-notes{font-size:11px;color:var(--grey);font-style:italic;background:#F8FAFC;padding:8px 10px;border-radius:6px;white-space:pre-line;}
+.det-recomend{font-size:11px;color:var(--black);background:var(--yellow-l);padding:8px 10px;border-radius:6px;border-left:3px solid var(--yellow);white-space:pre-line;}
+.auto-red-banner{background:var(--red-l);border:1px solid var(--red);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;font-weight:700;color:var(--red-d);}
+
+/* ACTION TABLE */
+.action-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px;}
+.action-table th{background:var(--blue);color:#fff;padding:6px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+.action-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.action-table td input,.action-table td select{width:100%;border:1px solid var(--border);border-radius:4px;padding:3px 6px;font-size:11px;font-family:'DM Sans',sans-serif;background:#fff;}
+.action-table td input:focus,.action-table td select:focus{outline:none;border-color:var(--teal);}
+.sp-pending{background:#F1F5F9;color:var(--grey);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;}
+.sp-progress{background:var(--blue-l);color:var(--blue-m);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;}
+.sp-done{background:var(--green-l);color:var(--green-d);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;}
+.sp-escalated{background:var(--red-l);color:var(--red-d);padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;display:inline-block;}
+
+/* DETAIL ACTIONS */
+.detail-actions{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--border);flex-shrink:0;background:#fff;border-radius:0 0 var(--r) var(--r);}
+.btn-detail{flex:1;padding:10px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.btn-pdf{background:var(--red-d);color:#fff;}
+.btn-full{background:var(--blue);color:#fff;}
+.btn-save-actions{background:var(--green-d);color:#fff;}
+
+/* FULLSCREEN MODAL */
+#fullscreen-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;overflow-y:auto;padding:30px;}
+#fullscreen-modal.show{display:block;}
+#fullscreen-content{background:#fff;border-radius:16px;max-width:900px;margin:0 auto;padding:40px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.fs-close{position:fixed;top:20px;right:30px;background:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;}
+.report-header{margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid var(--blue);}
+.report-title{font-size:24px;font-weight:700;color:var(--blue);}
+.report-meta{font-size:13px;color:var(--grey);margin-top:6px;}
+.report-score-box{display:inline-flex;align-items:center;gap:12px;background:var(--grey-l);border-radius:10px;padding:12px 20px;margin:16px 0;}
+.report-score-num{font-size:40px;font-weight:700;font-family:monospace;}
+.report-block{margin-bottom:20px;page-break-inside:avoid;}
+.report-block-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--border);}
+.report-block-title{font-size:15px;font-weight:700;color:var(--black);}
+.report-items{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.report-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--grey);}
+.report-note{font-size:12px;color:var(--grey);background:#F8FAFC;padding:8px;border-radius:6px;margin-top:6px;white-space:pre-line;}
+.report-actions-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.report-actions-table th{background:var(--blue);color:#fff;padding:8px 10px;text-align:left;}
+.report-actions-table td{padding:8px 10px;border-bottom:1px solid var(--border);}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:50px 20px;color:var(--grey);}
+.empty-icon{font-size:44px;margin-bottom:10px;}
+
+/* LIGHTBOX */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;align-items:center;justify-content:center;}
+#lightbox.show{display:flex;}
+#lightbox img{max-width:90vw;max-height:90vh;border-radius:8px;}
+#lb-close{position:absolute;top:20px;right:28px;color:#fff;font-size:36px;cursor:pointer;}
+
+@media print{
+  #topbar,#login-screen,.filter-bar,.kpi-row,.charts-row,#detail-panel,.detail-actions,#fullscreen-modal .fs-close{display:none!important;}
+  #fullscreen-content{box-shadow:none;padding:20px;}
+  body{background:#fff;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">PRISMA</div>
+    <div class="login-sub">Dashboard · Bluespace</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-field"><label class="login-label">Usuario</label><input class="login-input" type="text" id="login-user" autocomplete="username" autocapitalize="none"/></div>
+    <div class="login-field"><label class="login-label">Contraseña</label><input class="login-input" type="password" id="login-pass" autocomplete="current-password"/></div>
+    <button class="login-btn" onclick="doLogin()">Entrar al dashboard →</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="logo">PRISMA</div>
+  <div class="logo-sep"></div>
+  <div class="logo-sub">Dashboard de Visitas · Bluespace</div>
+  <div class="topbar-right">
+    <span class="last-update" id="lastUpdate">—</span>
+    <button class="btn-top" onclick="loadVisits()">↻ Actualizar</button>
+    <button class="btn-top red" onclick="logout()">⏻ Cerrar sesión</button>
+  </div>
+</div>
+
+<div id="main">
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi k-blue"><div class="kpi-num" id="kpi-total">—</div><div class="kpi-label">Visitas registradas</div></div>
+    <div class="kpi k-teal"><div class="kpi-num" id="kpi-centros">—</div><div class="kpi-label">Centros visitados</div></div>
+    <div class="kpi k-green"><div class="kpi-num" id="kpi-green">—</div><div class="kpi-label">Centros correctos</div></div>
+    <div class="kpi k-yellow"><div class="kpi-num" id="kpi-yellow">—</div><div class="kpi-label">Requieren mejoras</div></div>
+    <div class="kpi k-red"><div class="kpi-num" id="kpi-red">—</div><div class="kpi-label">Atención urgente</div></div>
+    <div class="kpi k-purple"><div class="kpi-num" id="kpi-score">—</div><div class="kpi-label">Score promedio red</div></div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <select id="filt-estado" onchange="renderList()">
+      <option value="">Todos los estados</option>
+      <option value="green">🟢 Correctos</option>
+      <option value="yellow">🟡 Revisar</option>
+      <option value="red">🔴 Atención urgente</option>
+    </select>
+    <select id="filt-pais" onchange="renderList()">
+      <option value="">Todos los países</option>
+      <option>🇪🇸 España</option><option>🇵🇹 Portugal</option>
+      <option>🇫🇷 Francia</option><option>🇮🇹 Italia</option>
+    </select>
+    <select id="filt-tipo" onchange="renderList()">
+      <option value="">Todos los tipos</option>
+      <option>Visita programada</option><option>Visita sin previo aviso</option>
+      <option>Visita de seguimiento</option><option>Visita post-incidente</option>
+    </select>
+    <button class="btn-clear" onclick="clearFilters()">✕ Limpiar</button>
+    <span class="filter-count" id="filtCount"></span>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts-row">
+    <div class="card"><div class="card-hdr"><span style="font-size:18px;">📊</span><h2>Estado por bloque de seguridad</h2></div><canvas id="blockChart" style="max-height:200px;"></canvas></div>
+    <div class="card"><div class="card-hdr"><span style="font-size:18px;">🎯</span><h2>Distribución de calificaciones</h2></div><canvas id="scoreChart" style="max-height:200px;"></canvas></div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px 0;"><div class="card-hdr"><span style="font-size:18px;">📋</span><h2>Registro de visitas</h2></div></div>
+        <div id="visitList" style="padding:0 14px 14px;"></div>
+      </div>
+    </div>
+    <div>
+      <div id="detail-panel">
+        <div id="detail-content">
+          <div style="padding:48px 22px;text-align:center;color:var(--grey);">
+            <div style="font-size:44px;margin-bottom:12px;">👈</div>
+            <div style="font-size:14px;font-weight:600;color:var(--black);">Selecciona una visita</div>
+            <div style="font-size:12px;margin-top:6px;">para ver el reporte completo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FULLSCREEN MODAL -->
+<div id="fullscreen-modal">
+  <button class="fs-close" onclick="closeFullscreen()">×</button>
+  <div id="fullscreen-content"></div>
+</div>
+
+<div id="lightbox" onclick="closeLb()"><span id="lb-close">×</span><img id="lb-img" src="" alt=""/></div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwFGwy-3HH7PylzP9aIzlwDD6Fgj2nH6AVVVtpiRQqCdjVvhg4WY1pdffOZ6aAmnnbA/exec';
+
+// ─── COLUMN → KEY MAP ────────────────────────────────────────
+const COL_MAP = {
+  'B1 Todo el equipo':'s1_equipo','B1 Demostró activación':'s1_demo',
+  'B1 Estado botón':'s1_estado','B1 Protocolo':'s1_proto',
+  'B1 Botones fijos':'s1_fijos','B1 Mandos portátiles':'s1_portátiles',
+  'B2 Doble factor':'s2_acceso','B2 Puertas cierran':'s2_cierre',
+  'B2 Segundo filtro':'s2_segundo','B2 Sensores libres':'s2_sensores','B2 Barda':'s2_barda',
+  'B3 Zonas QR':'s3_zonas','B3 Planta baja':'s3_pb','B3 Ascensores':'s3_ascen',
+  'B3 QR cabina':'s3_qr_cabina','B3 Parking':'s3_parking',
+  'B3 Portones':'s3_portones','B3 Iluminación':'s3_ilum',
+  'B4 CCTV operativo':'s4_op','B4 Estado cámaras':'s4_estado',
+  'B4 Cobertura':'s4_cob','B4 Analítica IA':'s4_ia',
+  'B4 Cuarto técnico':'s4_tecnico','B4 RGPD':'s4_rgpd','B4 Señuelo':'s4_señuelo',
+  'B5 Salidas señalizadas':'s5_senial','B5 Puertas emergencia':'s5_apertura',
+  'B5 Rutas despejadas':'s5_rutas','B5 Alerta apertura':'s5_alerta',
+  'B6 Alarma operativa':'s6_op','B6 Manager maneja':'s6_manejo',
+  'B6 Central 24/7':'s6_central','B6 Sin falsas alarmas':'s6_falsas',
+  'B7 Equipo seguro':'s7_seg','B7 Sin situaciones':'s7_sospech',
+  'B7 Conoce protocolo':'s7_proto',
+};
+
+const BLOCKS = [
+  {label:'Botón de pánico', icon:'🚨', weight:0.13, critical:false,
+   keys:['s1_equipo','s1_demo','s1_estado','s1_proto','s1_fijos','s1_portátiles'],
+   labels:['Todo el equipo conoce el botón','Demostró activación','Botón en buen estado','Conoce protocolo','Botones fijos','Mandos portátiles']},
+  {label:'Control de acceso', icon:'🚪', weight:0.18, critical:true,
+   keys:['s2_acceso','s2_cierre','s2_segundo','s2_sensores','s2_barda'],
+   labels:['Doble factor QR+código','Puertas cierran correctamente','Segundo filtro existe','Sensores despejados','Perímetro en buen estado']},
+  {label:'Zonificación', icon:'🗺️', weight:0.20, critical:true,
+   keys:['s3_zonas','s3_pb','s3_ascen','s3_qr_cabina','s3_parking','s3_portones','s3_ilum'],
+   labels:['Plantas zonificadas por QR','Planta baja con control','Ascensores restringidos','QR dentro de cabina','Parking zonificado','Portones controlados','Iluminación adecuada']},
+  {label:'CCTV', icon:'📹', weight:0.15, critical:false,
+   keys:['s4_op','s4_estado','s4_cob','s4_ia','s4_tecnico','s4_rgpd'],
+   labels:['Sistema CCTV operativo','Estado físico cámaras','Cobertura ≥70%','Analítica IA activa','Cuarto técnico restringido','Señalización RGPD']},
+  {label:'Emergencias', icon:'🔥', weight:0.12, critical:false,
+   keys:['s5_senial','s5_apertura','s5_rutas','s5_alerta'],
+   labels:['Salidas señalizadas','Puertas abren desde dentro','Rutas despejadas','Alerta ante apertura']},
+  {label:'Alarmas', icon:'🔔', weight:0.12, critical:false,
+   keys:['s6_op','s6_manejo','s6_central','s6_falsas'],
+   labels:['Alarma operativa','Equipo maneja alarma','Central 24/7','Sin falsas alarmas']},
+  {label:'Equipo', icon:'💬', weight:0.10, critical:false,
+   keys:['s7_seg','s7_sospech','s7_proto'],
+   labels:['Equipo se siente seguro','Sin situaciones sospechosas','Conoce protocolo incidentes']},
+];
+
+let allVisits = [];
+let selectedVisit = null;
+let editedActions = [];
+let blockChart = null, scoreChart = null;
+let authToken = localStorage.getItem('prisma_token')||'';
+
+// ─── DATA EXTRACTORS ─────────────────────────────────────────
+function getSV(v) {
+  const sv = {};
+  Object.entries(COL_MAP).forEach(([col,key]) => {
+    const val = String(v[col]||'').toLowerCase().trim();
+    if (['green','yellow','red'].includes(val)) sv[key] = val;
+  });
+  return sv;
+}
+
+function getScore(v) { return parseFloat(v['Score']||v.score||0)||0; }
+
+function getOverall(v) {
+  const autoRed = String(v['Auto-Rojo']||v.autoRed||'').toUpperCase()==='SÍ';
+  if (autoRed) return 'red';
+  const s = getScore(v);
+  if (s >= 2.5) return 'green';
+  if (s >= 1.8) return 'yellow';
+  if (s > 0) return 'red';
+  // Fallback: check semaphore values
+  const sv = getSV(v);
+  const vals = Object.values(sv);
+  if (!vals.length) return 'grey';
+  if (vals.includes('red')) return 'red';
+  if (vals.includes('yellow')) return 'yellow';
+  return 'green';
+}
+
+function getBlockColor(sv, keys) {
+  const vals = keys.map(k=>sv[k]).filter(Boolean);
+  if (!vals.length) return 'grey';
+  if (vals.includes('red')) return 'red';
+  if (vals.includes('yellow')) return 'yellow';
+  return 'green';
+}
+
+function getBlockUrls(v) {
+  try {
+    const raw = v['Fotos por bloque'] || v.blockUrls || '';
+    if (!raw) return {};
+    if (typeof raw === 'object') return raw;
+    return JSON.parse(raw);
+  } catch(e) { return {}; }
+}
+
+function photoBtn(url, label) {
+  if (!url) return '';
+  return `<a href="${url}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#EEF2F7;border:1px solid #E2E8F0;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:#1F3864;text-decoration:none;margin-top:6px;">📷 ${label||'Ver fotos'} →</a>`;
+}
+
+function getNotas(v) {
+  return {
+    s1: v['Notas B1']||'', s2: v['Notas B2']||'', s3: v['Notas B3']||'',
+    s4: v['Notas B4']||'', s5: v['Notas B5']||'', s6: v['Notas B6']||'',
+    s7: v['Inquietudes equipo']||'',
+    acciones: v['Plan de acción']||'',
+    recomendaciones: v['Recomendaciones']||'',
+    resumen: v['Resumen ejecutivo']||'',
+  };
+}
+
+function parseActions(str) {
+  if (!str) return [];
+  return str.split('\n').filter(l=>l.trim()).map(line => {
+    const clean = line.replace(/^\d+\.\s*/,'');
+    const parts = clean.split(' | ');
+    return {title:parts[0]||'', responsable:parts[1]||'—', fechaLimite:parts[2]||'—', estatus:parts[3]||'Pendiente'};
+  });
+}
+
+function badge(c) {
+  if(c==='green') return '<span class="sbadge sbadge-green">🟢 Correcto</span>';
+  if(c==='yellow') return '<span class="sbadge sbadge-yellow">🟡 Revisar</span>';
+  if(c==='red') return '<span class="sbadge sbadge-red">🔴 Atención</span>';
+  return '<span class="sbadge" style="background:#F1F5F9;color:#64748B;">⚪ Pendiente</span>';
+}
+function pillCls(c){return c==='green'?'pill-green':c==='yellow'?'pill-yellow':c==='red'?'pill-red':'pill-grey';}
+function dotCls(c){return c==='green'?'dot-green':c==='yellow'?'dot-yellow':c==='red'?'dot-red':'dot-grey';}
+
+// ─── AUTH ────────────────────────────────────────────────────
+async function doLogin() {
+  const user = document.getElementById('login-user').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  document.getElementById('login-error').classList.remove('show');
+  try {
+    const res = await fetch(SCRIPT_URL, {method:'POST', body: JSON.stringify({action:'login',username:user,password:pass})});
+    const data = await res.json();
+    if (data.status==='ok') {
+      authToken = data.token;
+      localStorage.setItem('prisma_token', authToken);
+      document.getElementById('login-screen').classList.add('hidden');
+      loadVisits();
+    } else {
+      document.getElementById('login-error').textContent = data.message||'Error';
+      document.getElementById('login-error').classList.add('show');
+    }
+  } catch(e) {
+    document.getElementById('login-error').textContent = 'Sin conexión';
+    document.getElementById('login-error').classList.add('show');
+  }
+}
+
+function logout() {
+  localStorage.removeItem('prisma_token');
+  location.reload();
+}
+
+// ─── LOAD ────────────────────────────────────────────────────
+async function loadVisits() {
+  document.getElementById('lastUpdate').textContent = 'Actualizando...';
+  try {
+    const res = await fetch(SCRIPT_URL+'?action=get_visits&token='+encodeURIComponent(authToken)+'&t='+Date.now());
+    const data = await res.json();
+    if (data.status==='ok') {
+      allVisits = data.visits||[];
+      updateKPIs();
+      renderList();
+      renderCharts();
+      document.getElementById('lastUpdate').textContent = 'Actualizado: '+new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+    } else if (data.message==='No autenticado') {
+      localStorage.removeItem('prisma_token');
+      location.reload();
+    }
+  } catch(e) {
+    document.getElementById('lastUpdate').textContent = 'Error de conexión';
+  }
+}
+
+// ─── KPIs ────────────────────────────────────────────────────
+function updateKPIs() {
+  let g=0,y=0,r=0,sSum=0,sCount=0;
+  const centros = new Set();
+  allVisits.forEach(v => {
+    centros.add(v['Centro']||v.centro||'');
+    const c = getOverall(v);
+    if(c==='green')g++; else if(c==='yellow')y++; else if(c==='red')r++;
+    const s = getScore(v);
+    if(s>0){sSum+=s;sCount++;}
+  });
+  document.getElementById('kpi-total').textContent = allVisits.length;
+  document.getElementById('kpi-centros').textContent = centros.size;
+  document.getElementById('kpi-green').textContent = g;
+  document.getElementById('kpi-yellow').textContent = y;
+  document.getElementById('kpi-red').textContent = r;
+  document.getElementById('kpi-score').textContent = sCount ? (sSum/sCount).toFixed(1) : '—';
+}
+
+// ─── FILTERS ─────────────────────────────────────────────────
+function getFiltered() {
+  const estado = document.getElementById('filt-estado').value;
+  const pais = document.getElementById('filt-pais').value;
+  const tipo = document.getElementById('filt-tipo').value;
+  return allVisits.filter(v => {
+    const centro = v['Centro']||v.centro||'';
+    if (estado && getOverall(v)!==estado) return false;
+    if (pais && !centro.includes(pais)) return false;
+    if (tipo && (v['Tipo']||v.tipo||'')!==tipo) return false;
+    return true;
+  });
+}
+
+function clearFilters() {
+  ['filt-estado','filt-pais','filt-tipo'].forEach(id => document.getElementById(id).value='');
+  renderList();
+}
+
+// ─── LIST ────────────────────────────────────────────────────
+function renderList() {
+  const filtered = getFiltered();
+  document.getElementById('filtCount').textContent = filtered.length+' visita'+(filtered.length!==1?'s':'');
+  const el = document.getElementById('visitList');
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">${allVisits.length?'🔍':'📱'}</div><div style="font-size:14px;font-weight:600;">${allVisits.length?'Sin resultados':'Aún no hay visitas'}</div></div>`;
+    return;
+  }
+  el.innerHTML = '<div class="visit-list">'+filtered.map((v,i)=>{
+    const sv = getSV(v);
+    const overall = getOverall(v);
+    const sc = getScore(v);
+    const centro = v['Centro']||v.centro||'—';
+    const fecha = v['Fecha']||v.fecha||'';
+    const manager = v['Manager']||v.manager||'—';
+    const tipo = v['Tipo']||v.tipo||'';
+    const autoRed = String(v['Auto-Rojo']||v.autoRed||'').toUpperCase()==='SÍ';
+    const dateStr = fecha ? new Date(fecha).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const pills = BLOCKS.map(b=>`<span class="block-pill ${pillCls(getBlockColor(sv,b.keys))}">${b.icon} ${b.label.split(' ')[0]}</span>`).join('');
+    return `<div class="visit-card vc-${overall}" onclick="selectVisit(${i})" id="vc-${i}">
+      <div class="vc-top">
+        <div style="flex:1;"><div class="vc-centro">${centro}</div><div class="vc-meta">${dateStr} · ${tipo} · ${manager}</div></div>
+        <div><div class="vc-score-num ${overall}">${sc||'—'}</div><div class="vc-score-label">score</div></div>
+      </div>
+      <div class="vc-blocks">${pills}${autoRed?'<span class="auto-red-pill">⚠️ Auto-rojo</span>':''}</div>
+    </div>`;
+  }).join('')+'</div>';
+}
+
+// ─── DETAIL ──────────────────────────────────────────────────
+function selectVisit(idx) {
+  document.querySelectorAll('.visit-card').forEach(c=>c.classList.remove('sel'));
+  const el = document.getElementById('vc-'+idx);
+  if(el) el.classList.add('sel');
+  selectedVisit = getFiltered()[idx];
+  if(!selectedVisit) return;
+  editedActions = parseActions(getNotas(selectedVisit).acciones);
+  renderDetail();
+}
+
+function renderDetail() {
+  const v = selectedVisit;
+  if (!v) return;
+  const sv = getSV(v);
+  const notas = getNotas(v);
+  const overall = getOverall(v);
+  const sc = getScore(v);
+  const autoRed = String(v['Auto-Rojo']||v.autoRed||'').toUpperCase()==='SÍ';
+  const centro = v['Centro']||v.centro||'—';
+  const fecha = v['Fecha']||v.fecha||'';
+  const manager = v['Manager']||v.manager||'—';
+  const acomp = v['Acompañante']||v.acompanante||'—';
+  const tipo = v['Tipo']||v.tipo||'';
+  const folderUrl = v['Enlace fotos']||v.folderUrl||'';
+  const photoCount = v['Fotos']||v['Fotos (cantidad)']||v.photoCount||0;
+  const dateStr = fecha ? new Date(fecha).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '—';
+  const scoreColor = overall==='green'?'#22C55E':overall==='yellow'?'#F59E0B':'#EF4444';
+
+  const blockUrls = getBlockUrls(v);
+  const blockKeys = ['prev_s1','prev_s2','prev_s3','prev_s4','prev_s5','prev_s6','prev_s7'];
+
+  // Blocks
+  let blocksHtml = BLOCKS.map((b,i)=>{
+    const c = getBlockColor(sv,b.keys);
+    const note = notas['s'+(i+1)] || '';
+    const bUrl = blockUrls[blockKeys[i]] || '';
+    const items = b.keys.map((k,j)=>`<div class="det-item"><span class="dot ${dotCls(sv[k]||'')}"></span>${b.labels[j]||k}</div>`).join('');
+    return `<div class="det-section">
+      <div class="det-sec-hdr">
+        <span style="font-size:16px;">${b.icon}</span>
+        <span class="det-sec-title">${b.label}</span>
+        <span class="det-sec-weight">(${Math.round(b.weight*100)}%)</span>
+        ${b.critical?'<span style="font-size:9px;background:#7C1D1D;color:#fff;padding:2px 6px;border-radius:10px;font-weight:700;">CRÍTICO</span>':''}
+        <span style="margin-left:auto;">${badge(c)}</span>
+      </div>
+      <div class="det-items">${items}</div>
+      ${note?`<div class="det-notes">${note}</div>`:''}
+      ${bUrl?`<a href="${bUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#EEF2F7;border:1px solid #E2E8F0;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:#1F3864;text-decoration:none;margin-top:6px;">📷 Ver fotos →</a>`:''}
+    </div>`;
+  }).join('');
+
+  // Editable actions table
+  const actHtml = `<div class="det-section">
+    <div class="det-sec-hdr"><span style="font-size:16px;">📌</span><span class="det-sec-title">Plan de acción</span></div>
+    <table class="action-table">
+      <thead><tr><th>Acción</th><th>Responsable</th><th>Fecha límite</th><th>Estatus</th></tr></thead>
+      <tbody id="actions-tbody">
+        ${editedActions.map((a,i)=>`<tr>
+          <td><input type="text" value="${a.title}" onchange="editedActions[${i}].title=this.value"/></td>
+          <td><input type="text" value="${a.responsable}" onchange="editedActions[${i}].responsable=this.value"/></td>
+          <td><input type="date" value="${a.fechaLimite!=='—'?a.fechaLimite:''}" onchange="editedActions[${i}].fechaLimite=this.value"/></td>
+          <td><select onchange="editedActions[${i}].estatus=this.value">
+            <option ${a.estatus==='Pendiente'?'selected':''}>Pendiente</option>
+            <option ${a.estatus==='En proceso'?'selected':''}>En proceso</option>
+            <option ${a.estatus==='Completada'?'selected':''}>Completada</option>
+            <option ${a.estatus==='Escalada'?'selected':''}>Escalada</option>
+          </select></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+
+  const rec = notas.recomendaciones;
+  const res = notas.resumen;
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+        <div class="detail-centro">${centro}</div>${badge(overall)}
+      </div>
+      <div class="detail-meta">${dateStr}</div>
+      <div class="detail-meta">Manager: ${manager} · ${acomp} · ${tipo}</div>
+      <div class="detail-score-row">
+        <div class="detail-score-num" style="color:${scoreColor};">${sc||'—'}</div>
+        <div>
+          <div style="font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;">Puntuación ponderada</div>
+          ${autoRed?'<div style="font-size:10px;color:#FCA5A5;">⚠️ Rojo automático por hallazgo crítico</div>':''}
+          ${folderUrl?`<a href="${folderUrl}" target="_blank" style="display:inline-block;margin-top:6px;color:#fff;font-size:11px;background:rgba(255,255,255,.2);padding:4px 10px;border-radius:6px;text-decoration:none;">📷 Ver ${photoCount} fotos en Drive →</a>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="detail-body">
+      ${autoRed?'<div class="auto-red-banner">⚠️ Hallazgos críticos en Zonificación o Control de Acceso — calificación roja automática</div>':''}
+      ${blocksHtml}
+      ${actHtml}
+      ${res?`<div class="det-section"><div class="det-sec-hdr"><span style="font-size:16px;">📝</span><span class="det-sec-title">Resumen ejecutivo</span></div><div class="det-notes">${res}</div></div>`:''}
+      ${rec?`<div class="det-section"><div class="det-sec-hdr"><span style="font-size:16px;">📤</span><span class="det-sec-title">Para dirección / regional</span></div><div class="det-recomend">${rec}</div></div>`:''}
+    </div>
+    <div class="detail-actions">
+      <button class="btn-detail btn-save-actions" onclick="saveActions()">💾 Guardar acciones</button>
+      <button class="btn-detail btn-full" onclick="printReport()">⛶ Ver / Imprimir reporte</button>
+      <button class="btn-detail btn-pdf" onclick="printReport()">🖨️ PDF</button>
+    </div>`;
+}
+
+// ─── SAVE ACTIONS ────────────────────────────────────────────
+async function saveActions() {
+  if (!selectedVisit) return;
+  // For now update locally and show confirmation
+  // In a full implementation this would update the Sheet
+  const actStr = editedActions.map((a,i)=>
+    `${i+1}. ${a.title} | ${a.responsable} | ${a.fechaLimite} | ${a.estatus}`
+  ).join('\n');
+  selectedVisit['Plan de acción'] = actStr;
+  alert('✅ Acciones actualizadas localmente.\n\nNota: Para persistir en Google Sheets, la actualización de acciones requiere implementación adicional del script.');
+}
+
+// ─── FULLSCREEN REPORT ───────────────────────────────────────
+function openFullscreen() {
+  const v = selectedVisit;
+  if (!v) return;
+  const sv = getSV(v);
+  const notas = getNotas(v);
+  const overall = getOverall(v);
+  const sc = getScore(v);
+  const autoRed = String(v['Auto-Rojo']||v.autoRed||'').toUpperCase()==='SÍ';
+  const centro = v['Centro']||v.centro||'—';
+  const fecha = v['Fecha']||v.fecha||'';
+  const manager = v['Manager']||v.manager||'—';
+  const acomp = v['Acompañante']||v.acompanante||'—';
+  const tipo = v['Tipo']||v.tipo||'';
+  const folderUrl = v['Enlace fotos']||v.folderUrl||'';
+  const photoCount = v['Fotos']||v['Fotos (cantidad)']||0;
+  const dateStr = fecha ? new Date(fecha).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '—';
+  const scoreColor = overall==='green'?'var(--green-d)':overall==='yellow'?'var(--yellow-d)':'var(--red-d)';
+  const scoreLabel = overall==='green'?'Centro bien operado':overall==='yellow'?'Mejoras requeridas':'Atención urgente';
+
+  const blocksHtml = BLOCKS.map((b,i)=>{
+    const c = getBlockColor(sv,b.keys);
+    const note = notas['s'+(i+1)]||'';
+    const items = b.keys.map((k,j)=>`<div class="report-item"><span class="dot ${dotCls(sv[k]||'')}" style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:${sv[k]==='green'?'#22C55E':sv[k]==='yellow'?'#F59E0B':sv[k]==='red'?'#EF4444':'#CBD5E1'};display:inline-block;"></span>${b.labels[j]||k}</div>`).join('');
+    return `<div class="report-block">
+      <div class="report-block-hdr">
+        <span style="font-size:18px;">${b.icon}</span>
+        <span class="report-block-title">${b.label}</span>
+        <span style="font-size:11px;color:var(--grey);margin-left:4px;">(${Math.round(b.weight*100)}%)</span>
+        ${b.critical?'<span style="font-size:10px;background:#7C1D1D;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:6px;">CRÍTICO</span>':''}
+        <span style="margin-left:auto;">${badge(c)}</span>
+      </div>
+      <div class="report-items">${items}</div>
+      ${note?`<div class="report-note">${note}</div>`:''}
+    </div>`;
+  }).join('');
+
+  const actHtml = editedActions.length ? `
+    <div class="report-block">
+      <div class="report-block-hdr"><span style="font-size:18px;">📌</span><span class="report-block-title">Plan de acción</span></div>
+      <table class="report-actions-table">
+        <thead><tr><th>#</th><th>Acción</th><th>Responsable</th><th>Fecha límite</th><th>Estatus</th></tr></thead>
+        <tbody>${editedActions.map((a,i)=>`<tr><td>${i+1}</td><td>${a.title}</td><td>${a.responsable}</td><td>${a.fechaLimite}</td><td>${a.estatus}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>` : '';
+
+  const rec = notas.recomendaciones;
+  const res = notas.resumen;
+
+  document.getElementById('fullscreen-content').innerHTML = `
+    <div class="report-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:11px;color:var(--grey);font-family:monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">PRISMA · Reporte de Visita de Centro · Bluespace</div>
+          <div class="report-title">${centro}</div>
+          <div class="report-meta">${dateStr} · Manager: ${manager} · ${acomp} · ${tipo}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;">Puntuación ponderada</div>
+          <div style="font-size:48px;font-weight:700;font-family:monospace;color:${scoreColor};line-height:1;">${sc||'—'}</div>
+          <div style="font-size:12px;font-weight:600;color:${scoreColor};">${scoreLabel}</div>
+          ${autoRed?'<div style="font-size:11px;color:var(--red-d);margin-top:4px;">⚠️ Rojo automático por hallazgo crítico</div>':''}
+        </div>
+      </div>
+      ${folderUrl?`<div style="margin-top:12px;"><a href="${folderUrl}" target="_blank" style="color:var(--blue);font-size:12px;">📷 Ver ${photoCount} fotos de la visita en Google Drive →</a></div>`:''}
+      ${res?`<div style="margin-top:12px;background:var(--grey-l);border-radius:8px;padding:12px;font-size:13px;"><strong>Resumen ejecutivo:</strong> ${res}</div>`:''}
+    </div>
+    ${autoRed?'<div class="auto-red-banner" style="margin-bottom:20px;">⚠️ Este centro tiene hallazgos críticos en Zonificación o Control de Acceso que generan calificación roja automática.</div>':''}
+    ${blocksHtml}
+    ${actHtml}
+    ${rec?`<div class="report-block"><div class="report-block-hdr"><span style="font-size:18px;">📤</span><span class="report-block-title">Para dirección / regional</span></div><div class="report-note" style="background:var(--yellow-l);border-left:3px solid var(--yellow);">${rec}</div></div>`:''}
+    <div style="margin-top:30px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;">
+      <button onclick="printReport()" style="padding:10px 20px;background:var(--red-d);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">🖨️ Imprimir / Descargar PDF</button>
+      <button onclick="closeFullscreen()" style="padding:10px 20px;background:var(--grey-l);color:var(--grey);border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Cerrar</button>
+    </div>`;
+
+  document.getElementById('fullscreen-modal').classList.add('show');
+}
+
+function closeFullscreen() {
+  document.getElementById('fullscreen-modal').classList.remove('show');
+}
+
+function generateReportHTML() {
+  const v = selectedVisit;
+  if (!v) return '';
+  const sv = getSV(v);
+  const notas = getNotas(v);
+  const overall = getOverall(v);
+  const sc = getScore(v);
+  const autoRed = String(v['Auto-Rojo']||v.autoRed||'').toUpperCase()==='SÍ';
+  const centro = v['Centro']||v.centro||'—';
+  const fecha = v['Fecha']||v.fecha||'';
+  const manager = v['Manager']||v.manager||'—';
+  const acomp = v['Acompañante']||v.acompanante||'—';
+  const tipo = v['Tipo']||v.tipo||'';
+  const folderUrl = v['Enlace fotos']||v.folderUrl||'';
+  const photoCount = parseInt(v['Fotos']||v['Fotos (cantidad)']||0)||0;
+  const dateStr = fecha ? new Date(fecha).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : '—';
+  const scoreColor = overall==='green'?'#16A34A':overall==='yellow'?'#D97706':'#DC2626';
+  const scoreLabel = overall==='green'?'Centro bien operado':overall==='yellow'?'Mejoras requeridas':'Atención urgente';
+  const colorDot = (val) => val==='green'?'#22C55E':val==='yellow'?'#F59E0B':val==='red'?'#EF4444':'#CBD5E1';
+  const colorBg = (val) => val==='green'?'#DCFCE7':val==='yellow'?'#FEF3C7':val==='red'?'#FEE2E2':'#F8FAFC';
+  const colorLabel = (val) => val==='green'?'🟢 Correcto':val==='yellow'?'🟡 Revisar':val==='red'?'🔴 Atención':'⚪ Pendiente';
+
+  const blockUrls = getBlockUrls(v);
+  const blockKeys = ['prev_s1','prev_s2','prev_s3','prev_s4','prev_s5','prev_s6','prev_s7'];
+
+  const blocksHtml = BLOCKS.map((b,i) => {
+    const c = getBlockColor(sv, b.keys);
+    const note = notas['s'+(i+1)]||'';
+    const bUrl = blockUrls[blockKeys[i]] || '';
+    const items = b.keys.map((k,j) => `
+      <tr>
+        <td style="padding:5px 8px;border-bottom:1px solid #E2E8F0;font-size:12px;color:#64748B;">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${colorDot(sv[k]||'')};margin-right:6px;vertical-align:middle;"></span>
+          ${b.labels[j]||k}
+        </td>
+        <td style="padding:5px 8px;border-bottom:1px solid #E2E8F0;font-size:11px;text-align:right;">
+          <span style="background:${colorBg(sv[k]||'')};padding:2px 8px;border-radius:10px;font-weight:600;">${colorLabel(sv[k]||'')}</span>
+        </td>
+      </tr>`).join('');
+    return `
+      <div style="margin-bottom:20px;page-break-inside:avoid;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid ${c==='red'?'#EF4444':c==='yellow'?'#F59E0B':c==='green'?'#22C55E':'#E2E8F0'};">
+          <span style="font-size:18px;">${b.icon}</span>
+          <span style="font-size:14px;font-weight:700;color:#0F1C2E;">${b.label}</span>
+          <span style="font-size:11px;color:#64748B;">(${Math.round(b.weight*100)}%)</span>
+          ${b.critical?'<span style="font-size:10px;background:#7C1D1D;color:#fff;padding:2px 8px;border-radius:10px;font-weight:700;">CRÍTICO</span>':''}
+          <span style="margin-left:auto;background:${colorBg(c)};padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;">${colorLabel(c)}</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;">${items}</table>
+        ${note?`<div style="margin-top:8px;background:#F8FAFC;padding:8px 12px;border-radius:6px;font-size:12px;color:#64748B;font-style:italic;white-space:pre-line;">${note}</div>`:''}
+        ${bUrl?`<a href="${bUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;background:#EEF2F7;border:1px solid #CBD5E1;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;color:#1F3864;text-decoration:none;margin-top:8px;">📷 Ver fotos de este bloque en Drive →</a>`:''}
+      </div>`;
+  }).join('');
+
+  const actHtml = editedActions.length ? `
+    <div style="margin-bottom:20px;page-break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #E2E8F0;">
+        <span style="font-size:18px;">📌</span>
+        <span style="font-size:14px;font-weight:700;color:#0F1C2E;">Plan de acción</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:#1F3864;color:#fff;">
+          <th style="padding:8px;text-align:left;">#</th>
+          <th style="padding:8px;text-align:left;">Acción</th>
+          <th style="padding:8px;text-align:left;">Responsable</th>
+          <th style="padding:8px;text-align:left;">Fecha límite</th>
+          <th style="padding:8px;text-align:left;">Estatus</th>
+        </tr></thead>
+        <tbody>${editedActions.map((a,i)=>`
+          <tr style="border-bottom:1px solid #E2E8F0;">
+            <td style="padding:7px 8px;color:#64748B;">${i+1}</td>
+            <td style="padding:7px 8px;">${a.title}</td>
+            <td style="padding:7px 8px;">${a.responsable}</td>
+            <td style="padding:7px 8px;font-family:monospace;">${a.fechaLimite}</td>
+            <td style="padding:7px 8px;"><span style="background:#F1F5F9;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${a.estatus}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '';
+
+  const rec = notas.recomendaciones;
+  const res = notas.resumen;
+
+  const fotosHtml = folderUrl ? `
+    <div style="margin-bottom:20px;page-break-inside:avoid;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #E2E8F0;">
+        <span style="font-size:18px;">📷</span>
+        <span style="font-size:14px;font-weight:700;color:#0F1C2E;">Evidencia fotográfica</span>
+      </div>
+      <div style="background:#EEF2F7;border-radius:8px;padding:16px;display:flex;align-items:center;gap:16px;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#0F1C2E;margin-bottom:4px;">${photoCount} foto(s) disponibles en Google Drive</div>
+          <div style="font-size:12px;color:#64748B;margin-bottom:10px;">Haz clic en el enlace para ver todas las fotos de esta visita</div>
+          <a href="${folderUrl}" target="_blank" style="display:inline-block;background:#1F3864;color:#fff;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📂 Ver fotos en Google Drive →</a>
+        </div>
+      </div>
+    </div>` : '';
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Reporte PRISMA — ${centro}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;color:#0F1C2E;background:#fff;padding:0;}
+  @media print{
+    body{padding:0;}
+    .no-print{display:none!important;}
+    @page{margin:15mm;size:A4;}
+  }
+  .print-btn{position:fixed;bottom:24px;right:24px;background:#1F3864;color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3);z-index:999;}
+  .close-btn{position:fixed;bottom:24px;right:200px;background:#fff;color:#64748B;border:1.5px solid #E2E8F0;border-radius:12px;padding:14px 24px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.1);z-index:999;}
+</style>
+</head>
+<body>
+<div style="max-width:860px;margin:0 auto;padding:32px 40px;">
+
+  <!-- HEADER -->
+  <div style="margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #1F3864;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div style="font-size:10px;color:#64748B;font-family:monospace;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">PRISMA · Reporte de Visita de Centro · Bluespace</div>
+        <div style="font-size:26px;font-weight:700;color:#1F3864;margin-bottom:4px;">${centro}</div>
+        <div style="font-size:13px;color:#64748B;">${dateStr}</div>
+        <div style="font-size:13px;color:#64748B;margin-top:2px;">Manager: ${manager} · ${acomp} · ${tipo}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:20px;">
+        <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Puntuación ponderada</div>
+        <div style="font-size:52px;font-weight:700;font-family:monospace;color:${scoreColor};line-height:1;">${sc||'—'}</div>
+        <div style="font-size:13px;font-weight:700;color:${scoreColor};">${scoreLabel}</div>
+        ${autoRed?'<div style="font-size:11px;color:#DC2626;margin-top:4px;">⚠️ Rojo automático por hallazgo crítico</div>':''}
+      </div>
+    </div>
+    ${res?`<div style="margin-top:14px;background:#F8FAFC;border-radius:8px;padding:12px 16px;font-size:13px;"><strong>Resumen ejecutivo:</strong> ${res}</div>`:''}
+  </div>
+
+  ${autoRed?'<div style="background:#FEE2E2;border:1px solid #EF4444;border-radius:8px;padding:10px 14px;margin-bottom:20px;font-size:12px;font-weight:700;color:#DC2626;">⚠️ Hallazgos críticos en Zonificación o Control de Acceso — calificación roja automática</div>':''}
+
+  ${fotosHtml}
+  ${blocksHtml}
+  ${actHtml}
+  ${rec?`<div style="margin-bottom:20px;page-break-inside:avoid;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #E2E8F0;"><span style="font-size:18px;">📤</span><span style="font-size:14px;font-weight:700;color:#0F1C2E;">Para dirección / regional</span></div><div style="background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:6px;padding:10px 14px;font-size:12px;color:#0F1C2E;white-space:pre-line;">${rec}</div></div>`:''}
+
+  <div style="margin-top:30px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11px;color:#94A3B8;text-align:center;">
+    Generado por PRISMA · Sistema de Gestión de Seguridad · Bluespace · ${new Date().toLocaleDateString('es-ES')}
+  </div>
+</div>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+<button class="close-btn no-print" onclick="window.close()">× Cerrar</button>
+</body>
+</html>`;
+}
+
+function printReport() {
+  const html = generateReportHTML();
+  if (!html) return;
+  const win = window.open('', '_blank', 'width=960,height=800,scrollbars=yes');
+  win.document.write(html);
+  win.document.close();
+}
+
+
+// ─── CHARTS ──────────────────────────────────────────────────
+function renderCharts() {
+  if (!allVisits.length) return;
+  const ctx1 = document.getElementById('blockChart').getContext('2d');
+  const gs=[],ys=[],rs=[];
+  BLOCKS.forEach(b => {
+    let g=0,y=0,r=0;
+    allVisits.forEach(v => {
+      const c = getBlockColor(getSV(v), b.keys);
+      if(c==='green')g++; else if(c==='yellow')y++; else if(c==='red')r++;
+    });
+    gs.push(g); ys.push(y); rs.push(r);
+  });
+  if(blockChart) blockChart.destroy();
+  blockChart = new Chart(ctx1, {type:'bar', data:{
+    labels: BLOCKS.map(b=>b.icon+' '+b.label.split(' ')[0]),
+    datasets:[
+      {label:'Correcto',data:gs,backgroundColor:'#DCFCE7',borderColor:'#16A34A',borderWidth:2,borderRadius:4},
+      {label:'Revisar',data:ys,backgroundColor:'#FEF3C7',borderColor:'#D97706',borderWidth:2,borderRadius:4},
+      {label:'Atención',data:rs,backgroundColor:'#FEE2E2',borderColor:'#DC2626',borderWidth:2,borderRadius:4},
+    ]
+  }, options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:10},usePointStyle:true}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{family:'DM Mono',size:9}}},y:{stacked:true,grid:{color:'#F1F5F9'},ticks:{font:{family:'DM Mono',size:9},stepSize:1}}}}});
+
+  const ctx2 = document.getElementById('scoreChart').getContext('2d');
+  let sg=0,sy=0,sr=0;
+  allVisits.forEach(v=>{const c=getOverall(v);if(c==='green')sg++;else if(c==='yellow')sy++;else if(c==='red')sr++;});
+  if(scoreChart) scoreChart.destroy();
+  scoreChart = new Chart(ctx2, {type:'doughnut', data:{
+    labels:['🟢 Correctos','🟡 Revisar','🔴 Atención'],
+    datasets:[{data:[sg,sy,sr],backgroundColor:['#DCFCE7','#FEF3C7','#FEE2E2'],borderColor:['#16A34A','#D97706','#DC2626'],borderWidth:2}]
+  }, options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{family:'DM Sans',size:11},usePointStyle:true}}},cutout:'65%'}});
+}
+
+// ─── LIGHTBOX ────────────────────────────────────────────────
+function openLb(src){document.getElementById('lb-img').src=src;document.getElementById('lightbox').classList.add('show');}
+function closeLb(){document.getElementById('lightbox').classList.remove('show');}
+
+// ─── STARTUP ─────────────────────────────────────────────────
+document.getElementById('login-pass').addEventListener('keydown', e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('login-user').addEventListener('keydown', e=>{if(e.key==='Enter')document.getElementById('login-pass').focus();});
+
+if (authToken) {
+  fetch(SCRIPT_URL+'?action=verify_session&token='+encodeURIComponent(authToken))
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.status==='ok'){document.getElementById('login-screen').classList.add('hidden');loadVisits();}
+      else{localStorage.removeItem('prisma_token');}
+    }).catch(()=>{
+      document.getElementById('login-screen').classList.add('hidden');
+      loadVisits();
+    });
+}
+
+setInterval(()=>{if(authToken)loadVisits();}, 30000);
+</script>
+</body>
+</html>
